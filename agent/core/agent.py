@@ -1,4 +1,12 @@
 from agent.planning.llm_planner import LLMPlanner
+from agent.tools.registry import ToolRegistry
+from agent.tools.executor import ToolExecutor
+from agent.tools.search_tool import SearchTool
+from agent.tools.memory_tool import MemoryTool
+from agent.tools.retrieve_tool import RetrieveTool
+from agent.tools.analyze_tool import AnalyzeTool
+from agent.tools.summarize_tool import SummarizeTool
+from agent.tools.reason_tool import ReasonTool
 
 
 class Agent:
@@ -8,6 +16,21 @@ class Agent:
         self.name = name
 
         self.planner = LLMPlanner()
+
+        self.registry = ToolRegistry()
+
+        self._register_tools()
+
+        self.executor = ToolExecutor(self.registry)
+
+    def _register_tools(self):
+
+        self.registry.register(SearchTool())
+        self.registry.register(MemoryTool())
+        self.registry.register(RetrieveTool())
+        self.registry.register(AnalyzeTool())
+        self.registry.register(SummarizeTool())
+        self.registry.register(ReasonTool())
 
     def think(self, task: str):
 
@@ -25,10 +48,21 @@ class Agent:
 
     def execute(self, plan):
 
-        print(f"\n[{self.name}] Executing...")
+        print(f"\n[{self.name}] Executing:")
+
+        context = ""
 
         for step in plan:
-            print(f"Executing step {step.id}: {step.description}")
+
+            print(f"\nStep {step.id}: {step.description}")
+
+            tool_input = context if context else step.description
+
+            result = self.executor.execute(step.tool, tool_input)
+
+            context = result
+
+            print(f"Result: {result}")
 
     def run(self, task: str):
 

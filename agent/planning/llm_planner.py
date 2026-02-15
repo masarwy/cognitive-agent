@@ -1,8 +1,9 @@
-import os
 import json
 import requests
 from typing import List
 from dataclasses import dataclass
+
+from agent.config import config
 
 
 @dataclass
@@ -19,9 +20,9 @@ class LLMPlanner:
 
     def __init__(self):
 
-        self.server_url = os.getenv("APP_LLM_SERVERURL")
-        self.model_name = os.getenv("APP_LLM_MODELNAME")
-        self.api_key = os.getenv("NVIDIA_API_KEY")
+        self.server_url = config.LLM_SERVER_URL
+        self.model_name = config.LLM_MODEL_NAME
+        self.api_key = config.NVIDIA_API_KEY
 
         self._validate_config()
 
