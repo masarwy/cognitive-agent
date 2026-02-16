@@ -77,7 +77,9 @@ class LLMPlanner:
             "summarize",
             "reason",
             "code",
-            "memory"
+            "memory",
+            "optimize",
+            "ingest",
         ]
 
         tools_list = "\n".join(f"- {t}" for t in tools)
@@ -85,6 +87,12 @@ class LLMPlanner:
         return (
             "You are an AI agent planner.\n\n"
             "Your job is to break down the user's task into clear execution steps.\n\n"
+            "IMPORTANT PLANNING RULES:\n"
+            "- If the task references a local folder, file path, repository, or external data source, "
+            "you MUST first use the ingest tool before using search, retrieve, analyze, or summarize.\n"
+            "- search, retrieve, analyze, and summarize require indexed data.\n"
+            "- ingest prepares external data for downstream tools.\n"
+            "- Do NOT retrieve or analyze data that has not been ingested.\n\n"
             f"Available tools:\n{tools_list}\n\n"
             "Return ONLY valid JSON in this format:\n\n"
             "{\n"

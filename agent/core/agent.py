@@ -4,9 +4,14 @@ from agent.tools.executor import ToolExecutor
 from agent.tools.search_tool import SearchTool
 from agent.tools.memory_tool import MemoryTool
 from agent.tools.retrieve_tool import RetrieveTool
+from agent.tools.ingest_tool import IngestTool
 from agent.tools.analyze_tool import AnalyzeTool
 from agent.tools.summarize_tool import SummarizeTool
 from agent.tools.reason_tool import ReasonTool
+from agent.tools.code_tool import CodeGenTool
+# from agent.tools.hardware_tool import HardwareTool
+from agent.tools.code_analysis_tool import CodeAnalysisTool
+from agent.tools.optimization_tool import OptimizationTool
 
 
 class Agent:
@@ -28,9 +33,12 @@ class Agent:
         self.registry.register(SearchTool())
         self.registry.register(MemoryTool())
         self.registry.register(RetrieveTool())
+        self.registry.register(IngestTool())
         self.registry.register(AnalyzeTool())
         self.registry.register(SummarizeTool())
         self.registry.register(ReasonTool())
+        self.registry.register(CodeGenTool())
+        self.registry.register(OptimizationTool())
 
     def think(self, task: str):
 
