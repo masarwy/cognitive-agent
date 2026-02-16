@@ -1,5 +1,4 @@
-# agent/tools/code_gen_tool.py
-from agent.tools.llm_tool import LLMTool  # Assuming your LLMTool is in llm_tool.py
+from agent.tools.llm_tool import LLMTool
 
 class CodeGenTool(LLMTool):
     def __init__(self):

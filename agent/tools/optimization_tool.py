@@ -2,7 +2,7 @@ from typing import Dict, Any
 
 from agent.tools.base import Tool
 from agent.tools.hardware_tool import HardwareTool
-from agent.tools.code_analysis_tool import CodeAnalysisTool
+from agent.tools.code_analyze_tool import CodeAnalyzeTool
 
 
 class OptimizationTool(Tool):
@@ -11,7 +11,7 @@ class OptimizationTool(Tool):
         super().__init__("optimize")
 
         self.hardware_tool = HardwareTool()
-        self.code_tool = CodeAnalysisTool()
+        self.code_tool = CodeAnalyzeTool()
 
     # ---------------------------------------------------------
 

@@ -9,8 +9,8 @@ from agent.tools.analyze_tool import AnalyzeTool
 from agent.tools.summarize_tool import SummarizeTool
 from agent.tools.reason_tool import ReasonTool
 from agent.tools.code_tool import CodeGenTool
-# from agent.tools.hardware_tool import HardwareTool
-from agent.tools.code_analysis_tool import CodeAnalysisTool
+from agent.tools.hardware_tool import HardwareTool
+from agent.tools.code_analyze_tool import CodeAnalyzeTool
 from agent.tools.optimization_tool import OptimizationTool
 
 
@@ -30,15 +30,17 @@ class Agent:
 
     def _register_tools(self):
 
-        self.registry.register(SearchTool())
-        self.registry.register(MemoryTool())
+        # self.registry.register(SearchTool())
+        # self.registry.register(MemoryTool())
         self.registry.register(RetrieveTool())
         self.registry.register(IngestTool())
-        self.registry.register(AnalyzeTool())
+        # self.registry.register(AnalyzeTool())
         self.registry.register(SummarizeTool())
         self.registry.register(ReasonTool())
         self.registry.register(CodeGenTool())
-        self.registry.register(OptimizationTool())
+        self.registry.register(HardwareTool())
+        self.registry.register(CodeAnalyzeTool())
+        # self.registry.register(OptimizationTool())
 
     def think(self, task: str):
 

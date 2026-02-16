@@ -9,7 +9,7 @@ from agent.tools.base import Tool
 class HardwareTool(Tool):
 
     def __init__(self):
-        super().__init__("hardware")
+        super().__init__("hardware_analyze")
 
     # ------------------------
 

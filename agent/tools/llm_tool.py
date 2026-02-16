@@ -16,7 +16,6 @@ class LLMTool(Tool):
         self.base_url = config.LLM_SERVER_URL
         self.model = config.LLM_MODEL_NAME
 
-
     def execute(self, input_text: str) -> str:
 
         print(f"[{self.name}] Processing...")
@@ -53,4 +52,17 @@ class LLMTool(Tool):
 
         data = response.json()
 
-        return data["choices"][0]["message"]["content"]
+        raw_content = data["choices"][0]["message"]["content"]
+
+        # Clean response automatically for all LLM tools
+        return self._clean_response(raw_content)
+
+    def _clean_response(self, text: str) -> str:
+        """Remove thinking tags from LLM responses"""
+        if '<think>' in text:
+            think_start = text.find('<think>')
+            think_end = text.find('</think>')
+            if think_end != -1:
+                think_end += len('</think>')
+                text = text[:think_start] + text[think_end:]
+        return text.strip()

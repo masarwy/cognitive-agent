@@ -2,7 +2,7 @@ import pytest
 
 from tests.utils import format_tool_input
 
-from agent.tools.code_analysis_tool import CodeAnalysisTool
+from agent.tools.code_analyze_tool import CodeAnalyzeTool
 from agent.tools.executor import ToolExecutor
 from agent.tools.registry import ToolRegistry
 
@@ -13,13 +13,13 @@ from agent.tools.registry import ToolRegistry
 
 @pytest.fixture
 def analyze_tool():
-    return CodeAnalysisTool()
+    return CodeAnalyzeTool()
 
 
 @pytest.fixture
 def executor():
     registry = ToolRegistry()
-    registry.register(CodeAnalysisTool())
+    registry.register(CodeAnalyzeTool())
 
     return ToolExecutor(registry)
 
