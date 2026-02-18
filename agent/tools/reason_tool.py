@@ -10,8 +10,13 @@ class ReasonTool(LLMTool):
             system_prompt="""
 You are a senior AI systems engineer.
 
-Reason deeply about:
+Structure your response as:
 
+## Executive Summary (2-3 sentences)
+[Key findings and top recommendations]
+
+## Detailed Analysis
+Reason deeply about:
 • tradeoffs
 • performance vs accuracy
 • engineering implications

@@ -71,46 +71,52 @@ class LLMPlanner:
 
     def _build_prompt(self, task: str) -> str:
         tools = [
-            # "search",
             "retrieve",
-            # "analyze",
             "code_analyze",
             "hardware_analyze",
             "summarize",
             "reason",
             "code",
-            # "memory",
-            # "optimize",
             "ingest",
+            "github_clone",
         ]
 
         tools_list = "\n".join(f"- {t}" for t in tools)
 
         return (
-            "You are an AI agent planner.\n\n"
-            "Your job is to break down the user's task into clear execution steps.\n\n"
-            "CRITICAL: Preserve ALL specific parameters (file paths, URLs, names, values) "
-            "EXACTLY as they appear in the user's task. Do NOT summarize or paraphrase these.\n\n"
-            "IMPORTANT PLANNING RULES:\n"
-            "- If the task references a local folder, file path, repository, or external data source, "
-            "you MUST first use the ingest tool before using search, retrieve, analyze, or summarize.\n"
-            "- search, retrieve, analyze, and summarize require indexed data.\n"
-            "- ingest prepares external data for downstream tools.\n"
-            "- Do NOT retrieve or analyze data that has not been ingested.\n"
-            "- When creating step descriptions, include the EXACT file paths, URLs, or identifiers "
-            "from the user's query - do not use generic phrases like 'the local folder'.\n\n"
-            f"Available tools:\n{tools_list}\n\n"
-            "Return ONLY valid JSON in this format:\n\n"
-            "{\n"
-            '  "steps": [\n'
-            "    {\n"
-            '      "id": 1,\n'
-            '      "description": "Ingest folder \'/home/user/project\' to prepare data",\n'
-            '      "tool": "ingest"\n'
-            "    }\n"
-            "  ]\n"
-            "}\n\n"
-            f"User task:\n{task}"
+                "You are an AI agent planner.\n\n"
+                "Your job is to break down the user's task into clear execution steps.\n\n"
+                "CRITICAL: Preserve ALL specific parameters (file paths, URLs, names, values) "
+                "EXACTLY as they appear in the user's task. Do NOT summarize or paraphrase these.\n\n"
+                "IMPORTANT PLANNING RULES:\n"
+                "- If the task references a local folder, file path, repository, or external data source, "
+                "you MUST first use the ingest tool before using search, retrieve, analyze, or summarize.\n"
+                "- search, retrieve, analyze, and summarize require indexed data.\n"
+                "- ingest prepares external data for downstream tools.\n"
+                "- Do NOT retrieve or analyze data that has not been ingested.\n"
+                "- When creating step descriptions, include the EXACT file paths, URLs, or identifiers "
+                "from the user's query - do not use generic phrases like 'the local folder'.\n\n"
+                "GITHUB CLONE WORKFLOW:\n"
+                "- After a github_clone step, assume the repository is cloned to /tmp/<repo_name>\n"
+                "- The next ingest step MUST specify the exact path: 'Ingest folder \\'/tmp/<repo_name>\\' to prepare data'\n"
+                "- Use the repository name from the GitHub URL (e.g., 'devscribe' from 'github.com/user/devscribe')\n\n"
+                f"Available tools:\n{tools_list}\n\n"
+                "Return ONLY valid JSON in this format:\n\n"
+                "{\n"
+                '  "steps": [\n'
+                "    {\n"
+                '      "id": 1,\n'
+                '      "description": "Clone repository \\\'https://github.com/user/repo\\\'",\n'
+                '      "tool": "github_clone"\n'
+                "    },\n"
+                "    {\n"
+                '      "id": 2,\n'
+                "      \"description\": \"Ingest folder '/tmp/<repo_name>' to prepare data\",\n"
+        '      "tool": "ingest"\n'
+        "    }\n"
+        "  ]\n"
+        "}\n\n"
+        f"User task:\n{task}"
         )
 
     def _call_llm(self, prompt: str) -> str:
