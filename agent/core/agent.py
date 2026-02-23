@@ -32,39 +32,51 @@ class Agent:
         self.registry.register(HardwareTool())
         self.registry.register(CodeAnalyzeTool())
 
-    def think(self, task: str):
-        print(f"\n[{self.name}] Task:")
-        print(task)
+    def think(self, task: str, log_fn=None):
+        def log(msg: str):
+            if log_fn:
+                log_fn(msg)
+            else:
+                print(msg)
+
+        log(f"\n[{self.name}] Task:")
+        log(task)
 
         plan = self.planner.create_plan(task)
 
-        print(f"\n[{self.name}] Plan:")
+        log(f"\n[{self.name}] Plan:")
         for step in plan:
-            print(f"{step.id}. {step.description} (tool={step.tool})")
+            log(f"{step.id}. {step.description} (tool={step.tool})")
 
         return plan
 
-    def execute(self, plan):
-        print(f"\n[{self.name}] Executing:")
+    def execute(self, plan, log_fn=None):
+        def log(msg: str):
+            if log_fn:
+                log_fn(msg)
+            else:
+                print(msg)
+
+        log(f"\n[{self.name}] Executing:")
 
         step_results = {}
         failed_steps = set()
 
         for step in plan:
-            print(f"\nStep {step.id}: {step.description}")
+            log(f"\nStep {step.id}: {step.description}")
 
             # Fix path references dynamically based on previous results
             fixed_description = self._fix_path_references(step.description, step_results)
 
             if fixed_description != step.description:
-                print(f"[PATH_FIX] Updated path in step description")
-                print(f"  Original: {step.description}")
-                print(f"  Fixed: {fixed_description}")
+                log(f"[PATH_FIX] Updated path in step description")
+                log(f"  Original: {step.description}")
+                log(f"  Fixed: {fixed_description}")
                 step.description = fixed_description
 
             # Check dependencies before executing
             if self._check_dependencies(step, step_results, failed_steps):
-                print(f"[SKIPPED] Step {step.id} skipped due to failed dependencies")
+                log(f"[SKIPPED] Step {step.id} skipped due to failed dependencies")
                 failed_steps.add(step.id)
                 continue
 
@@ -82,7 +94,7 @@ class Agent:
             is_valid = self._validate_result(result, step)
 
             if not is_valid:
-                print(f"[WARNING] Step {step.id} produced unexpected result")
+                log(f"[WARNING] Step {step.id} produced unexpected result")
                 failed_steps.add(step.id)
 
             # Store result
@@ -93,21 +105,21 @@ class Agent:
                 "success": is_valid
             }
 
-            print(f"Result: {result}")
+            log(f"Result: {result}")
+
+        return step_results
 
     def _fix_path_references(self, description: str, step_results: dict) -> str:
         """
         Fix generic path references with actual paths from previous steps.
         Handles both explicit placeholders and missing paths.
         """
-        # Extract actual paths from previous steps
         actual_paths = {}
 
         for step_id, step_info in step_results.items():
             if step_info['tool'] == 'github_clone':
                 result = step_info['result']
 
-                # Extract clone path with multiple patterns
                 patterns = [
                     r'(?:Repository is located at|cloned.*to):\s*(/[^\s\n]+)',
                     r'cloned\s+\w+\s+to\s+(/[^\s\n]+)',
@@ -125,14 +137,13 @@ class Agent:
 
         actual_path = actual_paths['cloned_repo']
 
-        # Only fix descriptions that actually need paths (ingest, code_analyze, retrieve)
+        # Only fix descriptions that actually need paths
         needs_path = any(keyword in description.lower() for keyword in
                          ['ingest', 'analyze code', 'retrieve', 'summarize code'])
 
         if not needs_path:
-            return description  # Don't modify hardware_analyze, reason, etc.
+            return description
 
-        # Replace explicit placeholders
         generic_patterns = [
             (r'/path/to/cloned/[\w-]+', actual_path),
             (r'/home/user/[\w-]+', actual_path),
@@ -142,9 +153,7 @@ class Agent:
         for pattern, replacement in generic_patterns:
             description = re.sub(pattern, replacement, description)
 
-        # Inject path when missing (for generic descriptions)
         if not re.search(r'/[\w/-]+', description):
-            # For ingest operations
             if re.search(r'\bingest\b', description, re.IGNORECASE):
                 description = re.sub(
                     r'ingest\s+(cloned\s+)?(repository|directory|folder|data)',
@@ -152,7 +161,6 @@ class Agent:
                     description,
                     flags=re.IGNORECASE
                 )
-            # For analyze operations
             elif re.search(r'\banalyze\b.*\bcode\b', description, re.IGNORECASE):
                 description = re.sub(
                     r'analyze\s+code(\s+for.*)?(\s+in)?(\s+ingested)?(\s+data)?',
@@ -182,7 +190,6 @@ class Agent:
                     step_info = step_results[step_id]
                     result = step_info['result']
 
-                    # Smart truncation based on tool type
                     truncated_result = self._smart_truncate(
                         result=result,
                         tool_name=step_info['tool']
@@ -195,7 +202,6 @@ class Agent:
 
             return "\n".join(context_parts)
         else:
-            # Minimal context mode - only previous step
             prev_step_id = current_step_id - 1
             if prev_step_id in step_results:
                 prev_result = step_results[prev_step_id]["result"]
@@ -213,37 +219,27 @@ class Agent:
         Intelligently truncate results based on tool type.
         Preserves structure and important information.
         """
-        # Tool-specific truncation rules
-        if tool_name == 'ingest':
+        if tool_name in ('ingest', 'github_clone', 'hardware_analyze'):
             return result
 
-        elif tool_name == 'github_clone':
-            return result
-
-        elif tool_name == 'hardware_analyze':
-            return result
-
-        elif tool_name == 'code_analyze':
+        if tool_name == 'code_analyze':
             return self._truncate_code_analysis(result, max_length or 800)
 
-        elif tool_name == 'reason':
+        if tool_name == 'reason':
             return self._truncate_reasoning(result, max_length or 800)
 
-        else:
-            default_max = max_length or 500
-            if len(result) <= default_max:
-                return result
-            return result[:default_max] + f"... [truncated {len(result) - default_max} chars]"
+        default_max = max_length or 500
+        if len(result) <= default_max:
+            return result
+        return result[:default_max] + f"... [truncated {len(result) - default_max} chars]"
 
     def _truncate_code_analysis(self, text: str, max_length: int) -> str:
-        """Truncate code analysis while preserving structure"""
         if len(text) <= max_length:
             return text
 
         lines = text.split('\n')
         kept_lines = []
         current_length = 0
-        current_section = None
         items_in_section = 0
         max_items_per_section = 3
 
@@ -253,7 +249,6 @@ class Agent:
             if line.startswith('#'):
                 kept_lines.append(line)
                 current_length += line_length
-                current_section = line
                 items_in_section = 0
 
             elif line.strip().startswith(('-', '*', '•', '**')):
@@ -281,7 +276,6 @@ class Agent:
         return result
 
     def _truncate_reasoning(self, text: str, max_length: int) -> str:
-        """Truncate reasoning output while keeping executive summary and key points"""
         if len(text) <= max_length:
             return text
 
@@ -324,7 +318,6 @@ class Agent:
         return result
 
     def _validate_result(self, result: str, step) -> bool:
-        """Enhanced validation with tool-specific checks"""
         if not result:
             print(f"[ERROR] Step {step.id} ({step.tool}) returned empty result")
             return False
@@ -343,7 +336,6 @@ class Agent:
             return self._validate_generic(result, result_lower, step)
 
     def _validate_ingest(self, result: str, result_lower: str, step) -> bool:
-        """Validate ingest tool results"""
         if "successfully ingested" not in result_lower:
             print(f"[ERROR] Ingest validation failed - expected success message")
             print(f"[RECOVERY] Check if RAG service is running and folder path is correct")
@@ -361,7 +353,6 @@ class Agent:
         return True
 
     def _validate_code_analyze(self, result: str, result_lower: str, step) -> bool:
-        """Validate code analysis results"""
         if "no code found" in result_lower:
             print(f"[ERROR] Code analysis failed - no code found")
             print(f"[RECOVERY] Ensure ingest step completed successfully before analysis")
@@ -382,7 +373,6 @@ class Agent:
         return True
 
     def _validate_hardware_analyze(self, result: str, result_lower: str, step) -> bool:
-        """Validate hardware analysis results"""
         required_fields = ['ram_gb', 'gpu', 'cuda']
         missing_fields = [field for field in required_fields if field not in result_lower]
 
@@ -397,7 +387,6 @@ class Agent:
         return True
 
     def _validate_reason(self, result: str, result_lower: str, step) -> bool:
-        """Validate reasoning tool results"""
         if len(result) < 200:
             print(f"[WARNING] Reasoning output seems too short ({len(result)} chars)")
             return False
@@ -412,7 +401,6 @@ class Agent:
         return True
 
     def _validate_generic(self, result: str, result_lower: str, step) -> bool:
-        """Generic validation for other tools"""
         error_indicators = [
             "error:",
             "failed to",
@@ -429,7 +417,6 @@ class Agent:
         return True
 
     def _check_dependencies(self, step, step_results: dict, failed_steps: set) -> bool:
-        """Check if current step depends on failed previous steps"""
         if step.tool == "code_analyze":
             for step_id in step_results:
                 if step_results[step_id]['tool'] == 'ingest':
@@ -454,6 +441,35 @@ class Agent:
 
         return False
 
-    def run(self, task: str):
-        plan = self.think(task)
-        self.execute(plan)
+    def run(self, task: str, log_fn=None) -> str:
+        """
+        Run the full agent pipeline.
+
+        Args:
+            task: user query
+            log_fn: optional callable(str) to receive log lines
+
+        Returns:
+            Combined log string (useful for UIs like Gradio)
+        """
+        logs = []
+
+        def log(msg: str):
+            msg = str(msg)
+            logs.append(msg)
+            print(msg)
+            if log_fn is not None:
+                log_fn(msg)
+
+        log(f"[{self.name}] Task:\n{task}\n")
+
+        plan = self.think(task, log_fn=log)
+
+        # Optionally log a separator or summary if you like, but no pretty():
+        log("\n[Plan ready]\n")
+
+        step_results = self.execute(plan, log_fn=log)
+
+        # Optionally, you could extract a "final answer" from step_results here.
+        # For now we just return the concatenated logs.
+        return "\n".join(logs)

@@ -12,6 +12,7 @@ profiling, code analysis, and contextualized reasoning.
 - **Code Analysis**: Semantic search for memory and performance patterns with line numbers
 - **Multi-Focus Analysis**: Supports memory optimization, inference latency, and general performance
 - **Quantified Recommendations**: Specific optimizations with complexity estimates
+- **Optional Web UI**: Simple Gradio-based interface for interacting with the agent
 
 ## What Can It Analyze?
 
@@ -49,7 +50,7 @@ EMBEDDING_MODEL=BAAI/bge-base-en-v1.5
 EMBEDDING_DEVICE=cuda                 # Options: cuda, cpu
 ```
 
-### Configuration Options
+### 2. Configuration Options
 
 **LLM Settings:**
 
@@ -67,7 +68,7 @@ EMBEDDING_DEVICE=cuda                 # Options: cuda, cpu
 - `EMBEDDING_MODEL`: Model for semantic search
 - `EMBEDDING_DEVICE`: `cuda` for GPU, `cpu` for CPU-only
 
-### RAG Service Setup
+### 3. RAG Service Setup
 
 **If using `local_faiss`**, start the RAG service in Terminal 1:
 
@@ -94,6 +95,24 @@ agent.run("Considering this machine hardware, what do you suggest to reduce "
 ```bash
 python -m scripts.run_agent
 ```
+
+### 4. Web UI (optional, Gradio)
+
+You can run an interactive web UI using Gradio:
+
+```bash
+python -m scripts.run_gradio_ui
+```
+
+This will:
+
+- Start the local RAG server (if RAG_BACKEND=local_faiss)
+
+- Launch a browser UI where you can enter tasks
+
+- Stream the agent’s step-by-step output into the page
+
+Navigate to http://localhost:7860/ to view the UI.
 
 ## How It Works
 
@@ -143,20 +162,25 @@ Key Recommendations
 
 ```python
 from agent.core.agent import Agent
+
 agent = Agent("MemoryOptimizationAgent")
 agent.run("Reduce memory usage in https://github.com/user/ml-project")
 ```
 
 ### Inference Performance
+
 ```python
 from agent.core.agent import Agent
+
 agent = Agent("InferencePerformanceAgent")
 agent.run("Optimize inference latency in https://github.com/user/api-service")
 ```
 
 ### Local Analysis
+
 ```python
 from agent.core.agent import Agent
+
 agent = Agent("LocalAnalysisAgent")
 agent.run("Analyze memory usage in '/path/to/local/project'")
 ```
