@@ -35,6 +35,7 @@ cd cognitive-agent
 pip install -r requirements.txt
 ```
 
+Create a `.env` file in the root directory with the following settings:
 ```bash
 # LLM Configuration
 APP_LLM_SERVERURL=https://integrate.api.nvidia.com
