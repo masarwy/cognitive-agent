@@ -197,6 +197,82 @@ agent.run("Analyze memory usage in '/path/to/local/project'")
 | `reason`           | Generate hardware-aware recommendations   |
 | `retrieve`         | Semantic code search                      |
 
+## MCP Integration (FastMCP)
+
+The cognitive-agent exposes every tool as an **MCP-compliant** server built
+on [FastMCP](https://github.com/jlowin/fastmcp). The legacy in-process tool
+abstraction (`ToolRegistry` + `Tool.execute`) is preserved as an automatic
+fallback, so existing scripts continue to work unchanged.
+
+### Architecture
+
+```
+agent/
+├── mcp/
+│   ├── server.py   # FastMCP server: @mcp.tool() wrappers around every tool
+│   └── client.py   # In-process MCP client used by ToolExecutor
+└── tools/
+    └── executor.py # Routes calls via MCP when use_mcp=True, else legacy
+```
+
+Each of the eight tools (`github_clone`, `ingest`, `retrieve`, `summarize`,
+`reason`, `code`, `hardware_analyze`, `code_analyze`) is registered with a
+`@mcp.tool()` decorator in `agent/mcp/server.py`. The underlying tool
+logic and signatures are unchanged — the MCP layer is purely an
+invocation adapter.
+
+### Running the agent over MCP
+
+```python
+from dotenv import load_dotenv
+load_dotenv()
+
+from agent.core.agent import Agent
+
+# MCP-native: every tool call round-trips through the MCP protocol.
+agent = Agent("CognitiveAgent", use_mcp=True)
+agent.run("Reduce memory usage in https://github.com/user/repo")
+```
+
+Omitting `use_mcp` (or setting it to `False`) keeps the original
+registry-based dispatch path.
+
+### Running the MCP server standalone
+
+The FastMCP server can also be run as a standalone process so that any
+MCP-aware client (Claude Desktop, Cursor, a remote executor) can
+consume the tools:
+
+```bash
+# Default: stdio transport (recommended for most MCP clients)
+python -m agent.mcp.server
+
+# Or streamable HTTP transport for remote clients
+python -m agent.mcp.server --http --host 0.0.0.0 --port 8765
+```
+
+Example Claude Desktop / Cursor `mcpServers` config entry:
+
+```json
+{
+  "mcpServers": {
+    "cognitive-agent": {
+      "command": "python",
+      "args": ["-m", "agent.mcp.server"]
+    }
+  }
+}
+```
+
+### How the executor dispatches calls
+
+`ToolExecutor` accepts a `use_mcp` flag. When enabled it lazily builds an
+`MCPToolClient` that connects (via FastMCP's in-memory transport) to the
+singleton server defined in `agent/mcp/server.py`, issues a real MCP
+`call_tool` request, and returns the textual result. Any exception on
+the MCP path is caught and the executor automatically falls back to the
+legacy `ToolRegistry` dispatch, preserving backward compatibility.
+
 ## Troubleshooting
 
 **RAG service error**: Ensure service is running on port 8000

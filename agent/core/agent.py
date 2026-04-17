@@ -14,12 +14,27 @@ from agent.tools.github_clone_tool import GitHubCloneTool
 
 class Agent:
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, use_mcp: bool = False):
+        """
+        Parameters
+        ----------
+        name:
+            Human-readable agent identifier used in logs.
+        use_mcp:
+            When ``True``, tool calls are dispatched through the
+            FastMCP server defined in ``agent.mcp.server`` via the
+            Model Context Protocol. When ``False`` (default), the
+            legacy in-process ``ToolRegistry`` abstraction is used.
+            The MCP path automatically falls back to the legacy
+            registry if dispatch fails, preserving backward
+            compatibility.
+        """
         self.name = name
         self.planner = LLMPlanner()
         self.registry = ToolRegistry()
         self._register_tools()
-        self.executor = ToolExecutor(self.registry)
+        self.executor = ToolExecutor(self.registry, use_mcp=use_mcp)
+        self.use_mcp = use_mcp
         self.full_context = True
 
     def _register_tools(self):
